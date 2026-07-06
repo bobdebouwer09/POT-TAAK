@@ -44,11 +44,14 @@
 
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
         // Connectie met jouw specifieke Supabase database
         const SUPABASE_URL = "https://rqcnjgavethraxgmczvy.supabase.co";
         const SUPABASE_KEY = "sb_publishable_nJ8SP8_AbJ9og0OPmQEc5Q_ZylQogOU";
+        
+        // Nu is window.supabase wél bekend en zal hij niet meer crashen!
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let groepen = [];
@@ -79,7 +82,7 @@
                 container.innerHTML = "";
 
                 if (groepen.length === 0) {
-                    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-style: italic; padding: 20px;">Je zit nog niet in een groep. Maak hierboven een groep aan om te starten! 🚀</p>';
+                    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-style: italic; padding: 20px;">Je zit nog niet in een group. Maak hierboven een groep aan om te starten! 🚀</p>';
                     return;
                 }
 
@@ -110,7 +113,6 @@
                 return;
             }
 
-            // Genereer een groot uniek nummer voor het ID (Math.random)
             const randomId = Math.floor(Math.random() * 100000000);
 
             const { error } = await db.from('groepen').insert([
@@ -124,10 +126,10 @@
 
             if (error) {
                 console.error("Fout bij groep aanmaken in database:", error);
-                alert("Er ging iets mis bij de database. Controleer de browser console (F12) voor de exacte fout.");
+                alert("Er ging iets mis bij de database.");
             } else {
                 naamInput.value = "";
-                await toonGroepen(); // Ververs direct de grid op je scherm
+                await toonGroepen(); 
             }
         }
 
@@ -136,7 +138,6 @@
             window.location.href = 'groep.html';
         }
 
-        // 3. VERWIJDER EEN GROEP LIVE UIT DE CLOUD
         async function verwijderGroep(id, event) {
             event.stopPropagation();
             if (confirm("Weet je zeker dat je deze live groep wilt verwijderen? Dit wist hem voor iedereen!")) {
@@ -152,7 +153,7 @@
             window.location.href = 'login.html';
         }
 
-        // Start direct met inladen zodra de startpagina opent
+        // Start direct met inladen
         toonGroepen();
     </script>
 </body>
