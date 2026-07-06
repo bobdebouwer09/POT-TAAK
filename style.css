@@ -1,0 +1,379 @@
+/* =========================================
+   TakeControl - Volledige Dark Mode Ontwerp
+   Achtergrond: Zwart | Vrienden: Lichtblauw | Gezin: Oranje
+   ========================================= */
+
+/* 1. Basis Instellingen & Kleurenpalet */
+:root {
+    --bg-color: #000000;        /* Pure zwart voor de achtergrond */
+    --card-bg: #1e1e1e;         /* Donkergrijs voor alle kaarten en blokken */
+    --primary-color: #38bdf8;    /* Lichtblauw / Sky Blue als hoofdkleur */
+    --primary-light: #7dd3fc;   /* Extra helder lichtblauw voor hovers */
+    --text-color: #f8fafc;      /* Bijna wit voor perfecte leesbaarheid in het donker */
+    --text-muted: #94a3b8;      /* Zacht leigrijs voor subtekst */
+    --border-color: #2e2e2e;    /* Subtiele donkere randen rondom vlakken */
+    
+    /* Statuskleuren */
+    --color-green: #22c55e;     /* Heldergroen voor 'Klaar' */
+    --color-orange: #f97316;    /* Helderoranje voor 'Gezin' en 'Mee bezig' */
+    --color-blue: #38bdf8;      /* Lichtblauw voor 'Vrienden' */
+    --color-red: #ef4444;       /* Helderrood voor 'Te doen' */
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+h1, h2, h3, h4 {
+    color: var(--text-color);
+    margin-top: 0;
+    font-weight: 700;
+}
+
+hr {
+    border: 0;
+    border-top: 2px solid var(--border-color);
+    margin: 24px 0;
+}
+
+/* 2. Navigatiebalk */
+nav {
+    background-color: var(--card-bg);
+    padding: 16px 24px;
+    border-bottom: 2px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+nav h1 {
+    font-size: 20px;
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-color);
+}
+
+/* 3. Tabbladen Navigatie */
+.tabs-container {
+    display: flex;
+    gap: 8px;
+    margin: 20px 0;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.tab-navigation-btn {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.2s;
+    border-radius: 6px;
+}
+
+.tab-navigation-btn:hover {
+    color: var(--primary-color);
+    background-color: #2e2e2e;
+}
+
+.tab-navigation-btn.active {
+    color: #000000;
+    background-color: var(--primary-color);
+}
+
+/* 4. Knoppen & Acties */
+.btn-primary, 
+.btn-action,
+.btn-main,
+button[onclick^="switchTab"], 
+button[onclick^="kiesWillekeurigPersoon"], 
+button[onclick^="openSchuldPopUp"],
+.add-task-form button,
+.inline-form button {
+    background-color: var(--primary-color) !important;
+    color: #000000 !important;
+    border: 1px solid var(--primary-color) !important;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary:hover, 
+.btn-action:hover,
+.btn-main:hover,
+button[onclick^="switchTab"]:hover,
+button[onclick^="kiesWillekeurigPersoon"]:hover,
+.add-task-form button:hover,
+.inline-form button:hover {
+    background-color: var(--primary-light) !important;
+    border-color: var(--primary-light) !important;
+}
+
+/* 5. Formulieren & Invoervelden */
+.quick-actions, .add-task-form, .creator-box {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 24px;
+}
+
+.inline-form input, .inline-form select, .creator-form input, .creator-form select { 
+    padding: 10px; 
+    border: 1px solid var(--border-color); 
+    border-radius: 6px; 
+    background-color: #121212 !important;
+    color: var(--text-color) !important;
+    font-size: 14px;
+}
+
+.inline-form input:focus, .inline-form select:focus, .creator-form input:focus { 
+    border-color: var(--primary-color); 
+    outline: none; 
+}
+
+/* 6. Takenbord & Kaarten */
+.board-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.status-block {
+    background: #121212;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.status-block h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 4px;
+}
+
+.status-todo { color: var(--color-red); }
+.status-doing { color: var(--color-orange); }
+.status-done { color: var(--color-green); }
+
+/* Taakkaarten */
+.task-card {
+    background: var(--card-bg);
+    padding: 14px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    position: relative;
+}
+
+.task-date { 
+    font-size: 12px; 
+    color: var(--color-red); 
+    font-weight: 600; 
+    display: block; 
+    margin-top: 6px; 
+}
+
+.delete-task-btn, .delete-btn { 
+    position: absolute; 
+    top: 14px; 
+    right: 14px; 
+    background: none; 
+    border: none; 
+    color: var(--text-muted); 
+    cursor: pointer; 
+    font-size: 14px;
+}
+
+.delete-task-btn:hover, .delete-btn:hover { 
+    color: var(--color-red); 
+}
+
+.edit-who-badge { 
+    background: #2e2e2e; 
+    padding: 2px 6px; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    color: var(--text-color); 
+    font-size: 12px; 
+    font-weight: 600;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.task-reward-badge { 
+    background: #064e3b; 
+    color: #4ade80; 
+    border: 1px solid #059669;
+    padding: 2px 6px; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    display: inline-block; 
+    font-size: 12px; 
+    font-weight: 700; 
+    margin-top: 6px; 
+}
+
+/* 7. Widgets & Leden Badges */
+.widget-card, .widget-box, .members-box {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 24px;
+}
+
+.members-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+.members-list { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 8px; 
+    margin-top: 10px; 
+}
+
+.member-badge {
+    background: #2e2e2e;
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-color);
+}
+
+.member-badge.is-me {
+    background: #0c4a6e; 
+    border-color: #0284c7;
+    color: var(--primary-color);
+}
+
+.randomizer-result { 
+    font-size: 16px; 
+    font-weight: 700; 
+    color: var(--color-green); 
+    margin-top: 12px; 
+}
+
+/* Chat met scroll functionaliteit */
+.chat-box { 
+    max-height: 180px; 
+    background: #121212; 
+    border: 1px solid var(--border-color); 
+    padding: 12px; 
+    border-radius: 6px; 
+    margin-bottom: 10px; 
+    overflow-y: auto;
+}
+
+.chat-input-row {
+    display: flex;
+    gap: 8px;
+}
+
+.chat-input-row input { 
+    flex: 1; 
+    padding: 10px; 
+    border: 1px solid var(--border-color); 
+    border-radius: 6px; 
+    background: #121212; 
+    color: var(--text-color); 
+}
+
+/* 8. Tabellen (Geld) */
+.money-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-top: 16px; 
+    background: var(--card-bg); 
+}
+
+.money-table th, .money-table td { 
+    padding: 12px; 
+    text-align: left; 
+    border-bottom: 1px solid var(--border-color); 
+}
+
+.money-table th { 
+    background: #121212; 
+    color: var(--text-muted); 
+    font-size: 12px; 
+    text-transform: uppercase; 
+    font-weight: 700;
+}
+
+td[style*="color: #10b981"], td[style*="color:#10b981"], td[style*="color: rgb(16, 185, 129)"] { color: var(--color-green) !important; font-weight: 600; }
+td[style*="color: #ef4444"], td[style*="color:#ef4444"], td[style*="color: rgb(239, 68, 68)"] { color: var(--color-red) !important; font-weight: 600; }
+.debt-delete-btn { background: none; border: none; color: var(--primary-color); cursor: pointer; font-weight: 600; }
+.debt-delete-btn:hover { text-decoration: underline; }
+
+/* 9. Dashboard Startpagina & Specifieke Groepskleuren */
+.welcome-hero { 
+    background: var(--card-bg); 
+    padding: 24px; 
+    border-radius: 8px; 
+    border: 1px solid var(--border-color);
+    border-left: 5px solid var(--primary-color); 
+}
+
+.dashboard-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+    gap: 16px; 
+}
+
+.group-card { 
+    background: var(--card-bg); 
+    padding: 20px; 
+    border-radius: 8px; 
+    border: 1px solid var(--border-color); 
+    position: relative; 
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.group-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-color);
+}
+
+/* Groepskleuren: Gezin = Oranje | Vrienden = Lichtblauw */
+.group-card.gezin { border-top: 4px solid var(--color-orange); }
+.group-card.vrienden { border-top: 4px solid var(--color-blue); }
+
+.group-badge, .group-type-badge { font-size: 11px; font-weight: 700; color: var(--text-color); background: #2e2e2e; padding: 3px 8px; border-radius: 4px; }

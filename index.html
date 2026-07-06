@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TakeControl - Startpagina</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <nav>
+        <h1>TakeControl 🚀</h1>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div id="user-display" class="user-info">👤 Laden...</div>
+            <button class="btn-action" style="padding: 4px 10px; font-size: 12px; background-color: var(--color-red) !important; color: white !important; border: none !important;" onclick="uitloggen()">Uitloggen 🚪</button>
+        </div>
+    </nav>
+
+    <main class="container">
+        
+        <div class="welcome-hero">
+            <h2 style="font-size: 24px; margin-bottom: 8px;" id="welcome-text">Welkom terug!</h2>
+            <p style="margin: 0; color: var(--text-muted); font-size: 15px;">Kies een actieve groep hieronder of start direct een nieuwe groep om taken en geldstromen bij te houden.</p>
+        </div>
+
+        <div class="creator-box">
+            <h3 style="margin-top: 0; margin-bottom: 12px;">➕ Nieuwe Groep Starten</h3>
+            <div class="inline-form">
+                <input type="text" id="new-group-name" placeholder="Naam van de groep (bv: Studentenhuis)">
+                <select id="new-group-type">
+                    <option value="vrienden">🏖️ Vriendengroep (Lichtblauw)</option>
+                    <option value="gezin">🏡 Gezin/Huishouden (Oranje)</option>
+                </select>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor:pointer;">
+                    <input type="checkbox" id="new-group-money" checked> Financiën inschakelen
+                </label>
+                <button class="btn-action" onclick="maakGroepAan()">Groep Aanmaken</button>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 30px; margin-bottom: 15px; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Mijn Actieve Groepen</h3>
+        <div class="dashboard-grid" id="groepen-overzicht">
+            </div>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase connectie voor de startpagina
+        const SUPABASE_URL = "https://rqcnjgavethraxgmczvy.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_nJ8SP8_AbJ9og0OPmQEc5Q_ZylQogOU";
+        
+        // CORRECTIE: We gebruiken de correcte constructor van de ingeladen bibliotheek
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let groepen = [];
+
+        // Controleer of de gebruiker is ingelogd
+        const ingelogdeGebruiker = localStorage.getItem('ingelogdeGebruiker');
+        const gebruikerAvatar = localStorage.getItem('gebruikerAvatar') || "👤";
+
+        if (!ingelogdeGebruiker) {
+            window.location.href = 'login.html';
+        } else {
+            document.getElementById('user-display').innerText = `${gebruikerAvatar} ${ingelogdeGebruiker}`;
+            document.getElementById('welcome-text').innerText = `Welkom terug, ${ingelogdeGebruiker}! 👋`;
+        }
+
+        // HAAL DE GROEPEN OP UIT DE CLOUD
+        async function toonGroepen() {
+            try {
+                const { data: dbGroepen, error } = await db.from('groepen').select('*');
+                if (error) throw error;
+
+                if (dbGroepen) {
+                    groepen = dbGroepen;
+                    // Sla ook lokaal op voor snelle herkenning op de dashboard-pagina
+                    localStorage.setItem('mijnGroepen', JSON.stringify(groepen));
+                }
+
+                const container = document.getElementById('groepen-overzicht');
+                container.innerHTML = "";
+
+                if (groepen.length === 0) {
+                    container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-style: italic; padding: 20px;">Je zit nog niet in een groep. Maak hierboven een groep aan om te starten! 🚀</p>`;
+                    return;
+                }
+
+                groepen.forEach(g => {
+                    const card = document.createElement('div');
+                    card.className = g.type === "gezin" ? "group-card type-gezin" : "group-card type-vrienden";
+                    card.setAttribute('onclick', `openGroep(${g.id})`);
+
+                    card.innerHTML = `
+                        <h4>${g.naam} ${g.type === 'vrienden' ? '🏖️' : '🏡'}</h4>
+                        <span class="group-tag">${g.type === 'vrienden' ? 'Vrienden' : 'Gezin'}</span>
+                        <p>Functies: ${g.heeftGeld ? '📋 Taken + 💰 Geld' : '📋 Alleen Taken'}</p>
+                        <button class="delete-group-btn" onclick="verwijderGroep(${g.id}, event)">Verwijderen ❌</button>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                console.error("Fout bij het ophalen van groepen:", err);
+            }
+        }
+
+        // MAAK EEN GROEP LIVE AAN IN SUPABASE
+        async function maakGroepAan() {
+            const naamInput = document.getElementById('new-group-name');
+            const typeInput = document.getElementById('new-group-type');
+            const geldInput = document.getElementById('new-group-money');
+
+            if (naamInput.value.trim() === "") {
+                alert("Vul eerst een groepsnaam in!");
+                return;
+            }
+
+            // Gebruik een unieke grote integer id (Math.random) om conflicten te voorkomen
+            const randomId = Math.floor(Math.random() * 100000000);
+
+            const { error } = await db.from('groepen').insert([
+                {
+                    id: randomId,
+                    naam: naamInput.value.trim(),
+                    type: typeInput.value,
+                    heeftGeld: geldInput.checked
+                }
+            ]);
+
+            if (error) {
+                console.error("Fout bij groep aanmaken:", error);
+                alert("Er ging iets mis met de database bij het aanmaken.");
+            } else {
+                naamInput.value = "";
+                toonGroepen();
+            }
+        }
+
+        function openGroep(id) {
+            localStorage.setItem('actieveGroepId', id);
+            window.location.href = 'groep.html';
+        }
+
+        // VERWIJDER GROEP UIT SUPABASE
+        async function verwijderGroep(id, event) {
+            event.stopPropagation();
+            if (confirm("Weet je zeker dat je deze live groep wilt verwijderen? Dit wist hem voor iedereen!")) {
+                const { error } = await db.from('groepen').delete().eq('id', id);
+                if (error) console.error(error);
+                else toonGroepen();
+            }
+        }
+
+        function uitloggen() {
+            localStorage.removeItem('ingelogdeGebruiker');
+            localStorage.removeItem('gebruikerAvatar');
+            window.location.href = 'login.html';
+        }
+
+        // Direct groepen inladen zodra pagina opstart
+        toonGroepen();
+    </script>
+</body>
+</html>
