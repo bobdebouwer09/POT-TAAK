@@ -46,27 +46,25 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase connectie voor de startpagina
+        // Connectie met jouw specifieke Supabase database
         const SUPABASE_URL = "https://rqcnjgavethraxgmczvy.supabase.co";
         const SUPABASE_KEY = "sb_publishable_nJ8SP8_AbJ9og0OPmQEc5Q_ZylQogOU";
-        
-        // CORRECTIE: We gebruiken de correcte constructor van de ingeladen bibliotheek
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let groepen = [];
 
-        // Controleer of de gebruiker is ingelogd
+        // Inlogcontrole via localStorage
         const ingelogdeGebruiker = localStorage.getItem('ingelogdeGebruiker');
         const gebruikerAvatar = localStorage.getItem('gebruikerAvatar') || "👤";
 
         if (!ingelogdeGebruiker) {
             window.location.href = 'login.html';
         } else {
-            document.getElementById('user-display').innerText = `${gebruikerAvatar} ${ingelogdeGebruiker}`;
-            document.getElementById('welcome-text').innerText = `Welkom terug, ${ingelogdeGebruiker}! 👋`;
+            document.getElementById('user-display').innerText = gebruikerAvatar + " " + ingelogdeGebruiker;
+            document.getElementById('welcome-text').innerText = "Welkom terug, " + ingelogdeGebruiker + "! 👋";
         }
 
-        // HAAL DE GROEPEN OP UIT DE CLOUD
+        // 1. HAAL ALLE GROEPEN OP UIT JOUW CLOUD
         async function toonGroepen() {
             try {
                 const { data: dbGroepen, error } = await db.from('groepen').select('*');
@@ -74,7 +72,6 @@
 
                 if (dbGroepen) {
                     groepen = dbGroepen;
-                    // Sla ook lokaal op voor snelle herkenning op de dashboard-pagina
                     localStorage.setItem('mijnGroepen', JSON.stringify(groepen));
                 }
 
@@ -82,21 +79,19 @@
                 container.innerHTML = "";
 
                 if (groepen.length === 0) {
-                    container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-style: italic; padding: 20px;">Je zit nog niet in een groep. Maak hierboven een groep aan om te starten! 🚀</p>`;
+                    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-style: italic; padding: 20px;">Je zit nog niet in een groep. Maak hierboven een groep aan om te starten! 🚀</p>';
                     return;
                 }
 
                 groepen.forEach(g => {
                     const card = document.createElement('div');
                     card.className = g.type === "gezin" ? "group-card type-gezin" : "group-card type-vrienden";
-                    card.setAttribute('onclick', `openGroep(${g.id})`);
+                    card.setAttribute('onclick', 'openGroep(' + g.id + ')');
 
-                    card.innerHTML = `
-                        <h4>${g.naam} ${g.type === 'vrienden' ? '🏖️' : '🏡'}</h4>
-                        <span class="group-tag">${g.type === 'vrienden' ? 'Vrienden' : 'Gezin'}</span>
-                        <p>Functies: ${g.heeftGeld ? '📋 Taken + 💰 Geld' : '📋 Alleen Taken'}</p>
-                        <button class="delete-group-btn" onclick="verwijderGroep(${g.id}, event)">Verwijderen ❌</button>
-                    `;
+                    card.innerHTML = '<h4>' + g.naam + ' ' + (g.type === "vrienden" ? "🏖️" : "🏡") + '</h4>' +
+                                     '<span class="group-tag">' + (g.type === "vrienden" ? "Vrienden" : "Gezin") + '</span>' +
+                                     '<p>Functies: ' + (g.heeftGeld ? "📋 Taken + 💰 Geld" : "📋 Alleen Taken") + '</p>' +
+                                     '<button class="delete-group-btn" onclick="verwijderGroep(' + g.id + ', event)">Verwijderen ❌</button>';
                     container.appendChild(card);
                 });
             } catch (err) {
@@ -104,18 +99,18 @@
             }
         }
 
-        // MAAK EEN GROEP LIVE AAN IN SUPABASE
+        // 2. MAAK EEN NIEUWE GROEP LIVE AAN IN JOUW DATABASE
         async function maakGroepAan() {
             const naamInput = document.getElementById('new-group-name');
             const typeInput = document.getElementById('new-group-type');
             const geldInput = document.getElementById('new-group-money');
 
-            if (naamInput.value.trim() === "") {
+            if (!naamInput || naamInput.value.trim() === "") {
                 alert("Vul eerst een groepsnaam in!");
                 return;
             }
 
-            // Gebruik een unieke grote integer id (Math.random) om conflicten te voorkomen
+            // Genereer een groot uniek nummer voor het ID (Math.random)
             const randomId = Math.floor(Math.random() * 100000000);
 
             const { error } = await db.from('groepen').insert([
@@ -128,11 +123,11 @@
             ]);
 
             if (error) {
-                console.error("Fout bij groep aanmaken:", error);
-                alert("Er ging iets mis met de database bij het aanmaken.");
+                console.error("Fout bij groep aanmaken in database:", error);
+                alert("Er ging iets mis bij de database. Controleer de browser console (F12) voor de exacte fout.");
             } else {
                 naamInput.value = "";
-                toonGroepen();
+                await toonGroepen(); // Ververs direct de grid op je scherm
             }
         }
 
@@ -141,7 +136,7 @@
             window.location.href = 'groep.html';
         }
 
-        // VERWIJDER GROEP UIT SUPABASE
+        // 3. VERWIJDER EEN GROEP LIVE UIT DE CLOUD
         async function verwijderGroep(id, event) {
             event.stopPropagation();
             if (confirm("Weet je zeker dat je deze live groep wilt verwijderen? Dit wist hem voor iedereen!")) {
@@ -157,7 +152,7 @@
             window.location.href = 'login.html';
         }
 
-        // Direct groepen inladen zodra pagina opstart
+        // Start direct met inladen zodra de startpagina opent
         toonGroepen();
     </script>
 </body>
