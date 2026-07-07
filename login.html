@@ -6,36 +6,57 @@
     <title>TakeControl - Inloggen</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Extra styles speciaal om het inlogscherm mooi in het midden te zetten */
         .login-wrapper {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #f5f7fb;
+            background-color: var(--bg-color);
         }
         .login-box {
-            background: white;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
             width: 100%;
             max-width: 350px;
             text-align: center;
         }
-        .login-box h2 { margin-bottom: 20px; color: #1e293b; }
+        .login-box h2 { margin-bottom: 6px; color: var(--primary-color); }
+        .login-box .subtekst { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
         .login-box input {
             width: 90%;
             padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #cbd5e1;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
             border-radius: 6px;
             font-size: 16px;
+            background-color: #121212;
+            color: var(--text-color);
         }
-        .login-box button { width: 100%; padding: 12px; font-size: 16px; }
-        .avatar-selection { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 24px; }
-        .avatar-option { cursor: pointer; padding: 5px; border-radius: 5px; border: 2px solid transparent; }
-        .avatar-option.selected { border-color: #3b82f6; background: #e2e8f0; }
+        .login-box input:focus { border-color: var(--primary-color); outline: none; }
+        .login-box button { width: 100%; padding: 12px; font-size: 16px; margin-top: 6px; }
+        .avatar-selection { display: flex; justify-content: center; gap: 12px; margin-bottom: 18px; font-size: 24px; }
+        .avatar-option { cursor: pointer; padding: 5px 8px; border-radius: 8px; border: 2px solid transparent; }
+        .avatar-option.selected { border-color: var(--primary-color); background: #2e2e2e; }
+
+        .modus-wissel { margin-top: 18px; font-size: 14px; color: var(--text-muted); }
+        .modus-wissel a { color: var(--primary-color); cursor: pointer; font-weight: 600; text-decoration: none; }
+        .modus-wissel a:hover { text-decoration: underline; }
+
+        #foutmelding {
+            display: none;
+            background: #4c1d1d;
+            border: 1px solid var(--color-red);
+            color: #fecaca;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 14px;
+            text-align: left;
+        }
+        #laden-indicator { display: none; color: var(--text-muted); font-size: 13px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -43,48 +64,194 @@
     <div class="login-wrapper">
         <div class="login-box">
             <h2>TakeControl 🤝</h2>
-            <p>Kies een naam en wachtwoord om te starten!</p>
-            
-            <input type="text" id="username" placeholder="Gebruikersnaam" required>
-            <input type="password" id="password" placeholder="Wachtwoord" required>
-            
-            <p style="font-size: 14px; color: #64748b; margin-bottom: 5px;">Kies je avatar:</p>
-            <div class="avatar-selection">
-                <span class="avatar-option selected" onclick="selectAvatar(this, '😎')">😎</span>
-                <span class="avatar-option" onclick="selectAvatar(this, '🐱')">🐱</span>
-                <span class="avatar-option" onclick="selectAvatar(this, '🦊')">🦊</span>
-                <span class="avatar-option" onclick="selectAvatar(this, '🚀')">🚀</span>
+            <p class="subtekst" id="subtekst">Log in met je gebruikersnaam en wachtwoord</p>
+
+            <div id="foutmelding"></div>
+
+            <input type="text" id="username" placeholder="Gebruikersnaam" autocomplete="username">
+            <input type="password" id="password" placeholder="Wachtwoord" autocomplete="current-password">
+
+            <div id="avatar-sectie" style="display:none;">
+                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 5px;">Kies je avatar:</p>
+                <div class="avatar-selection">
+                    <span class="avatar-option selected" onclick="kiesAvatar(this, '😎')">😎</span>
+                    <span class="avatar-option" onclick="kiesAvatar(this, '🐱')">🐱</span>
+                    <span class="avatar-option" onclick="kiesAvatar(this, '🦊')">🦊</span>
+                    <span class="avatar-option" onclick="kiesAvatar(this, '🚀')">🚀</span>
+                </div>
             </div>
 
-            <button class="btn-primary" id="login-btn">Starten & Inloggen</button>
+            <button class="btn-primary" id="actie-knop" onclick="verwerkFormulier()">Inloggen</button>
+
+            <div id="laden-indicator">⏳ Even geduld...</div>
+
+            <p class="modus-wissel" id="modus-wissel-tekst">
+                Nog geen account? <a onclick="wisselModus()">Account aanmaken</a>
+            </p>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        const SUPABASE_URL = "https://rqcnjgavethraxgmczvy.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_nJ8SP8_AbJ9og0OPmQEc5Q_ZylQogOU";
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let isRegistreren = false;
         let gekozenAvatar = "😎";
 
-        function selectAvatar(element, avatar) {
+        // Supabase Auth werkt met e-mailadressen. Omdat de gebruiker alleen een
+        // gebruikersnaam invoert, maken we hier automatisch een "nep" e-mailadres
+        // van, dat de gebruiker nooit te zien krijgt.
+        function usernameNaarEmail(username) {
+            const schoon = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            return `${schoon}@pottaak.local`;
+        }
+
+        function kiesAvatar(element, avatar) {
             document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
             element.classList.add('selected');
             gekozenAvatar = avatar;
         }
 
-        document.getElementById('login-btn').addEventListener('click', () => {
-            const naam = document.getElementById('username').value;
+        function toonFout(bericht) {
+            const el = document.getElementById('foutmelding');
+            el.innerText = bericht;
+            el.style.display = 'block';
+        }
+
+        function verbergFout() {
+            document.getElementById('foutmelding').style.display = 'none';
+        }
+
+        function wisselModus() {
+            isRegistreren = !isRegistreren;
+            verbergFout();
+            document.getElementById('avatar-sectie').style.display = isRegistreren ? 'block' : 'none';
+            document.getElementById('actie-knop').innerText = isRegistreren ? 'Account aanmaken' : 'Inloggen';
+            document.getElementById('subtekst').innerText = isRegistreren
+                ? 'Maak een nieuw account aan'
+                : 'Log in met je gebruikersnaam en wachtwoord';
+            document.getElementById('modus-wissel-tekst').innerHTML = isRegistreren
+                ? 'Heb je al een account? <a onclick="wisselModus()">Inloggen</a>'
+                : 'Nog geen account? <a onclick="wisselModus()">Account aanmaken</a>';
+        }
+
+        async function verwerkFormulier() {
+            verbergFout();
+            const username = document.getElementById('username').value.trim();
             const wachtwoord = document.getElementById('password').value;
 
-            if (naam.trim() === "" || wachtwoord.trim() === "") {
-                alert("Vul wel even een naam en wachtwoord in!");
+            if (username === "" || wachtwoord === "") {
+                toonFout("Vul een gebruikersnaam en wachtwoord in.");
+                return;
+            }
+            if (wachtwoord.length < 6) {
+                toonFout("Wachtwoord moet minstens 6 tekens lang zijn.");
                 return;
             }
 
-            // Sla de ingelogde gebruiker op in de browser
-            localStorage.setItem('ingelogdeGebruiker', naam);
-            localStorage.setItem('gebruikerAvatar', gekozenAvatar);
+            document.getElementById('laden-indicator').style.display = 'block';
+            document.getElementById('actie-knop').disabled = true;
 
-            // Stuur door naar het dashboard!
+            const email = usernameNaarEmail(username);
+
+            if (isRegistreren) {
+                await registreren(username, email, wachtwoord);
+            } else {
+                await inloggen(email, wachtwoord);
+            }
+
+            document.getElementById('laden-indicator').style.display = 'none';
+            document.getElementById('actie-knop').disabled = false;
+        }
+
+        async function registreren(username, email, wachtwoord) {
+            // Check eerst of de gebruikersnaam al bestaat
+            const { data: bestaandeProfielen, error: checkError } = await db
+                .from('profiles')
+                .select('username')
+                .eq('username', username)
+                .maybeSingle();
+
+            if (checkError) {
+                toonFout("Er ging iets mis bij het controleren van de gebruikersnaam.");
+                console.error(checkError);
+                return;
+            }
+            if (bestaandeProfielen) {
+                toonFout("Deze gebruikersnaam is al in gebruik. Kies een andere.");
+                return;
+            }
+
+            const { data, error } = await db.auth.signUp({
+                email: email,
+                password: wachtwoord
+            });
+
+            if (error) {
+                if (error.message.includes("already registered")) {
+                    toonFout("Deze gebruikersnaam is al in gebruik.");
+                } else {
+                    toonFout("Registreren mislukt: " + error.message);
+                }
+                console.error(error);
+                return;
+            }
+
+            // Profiel aanmaken gekoppeld aan het nieuwe account
+            const { error: profielError } = await db.from('profiles').insert([
+                { id: data.user.id, username: username, avatar: gekozenAvatar }
+            ]);
+
+            if (profielError) {
+                toonFout("Account is aangemaakt, maar het profiel opslaan mislukte. Probeer in te loggen.");
+                console.error(profielError);
+                return;
+            }
+
+            localStorage.setItem('ingelogdeGebruiker', username);
+            localStorage.setItem('gebruikerAvatar', gekozenAvatar);
             window.location.href = 'index.html';
-        });
+        }
+
+        async function inloggen(email, wachtwoord) {
+            const { data, error } = await db.auth.signInWithPassword({
+                email: email,
+                password: wachtwoord
+            });
+
+            if (error) {
+                toonFout("Gebruikersnaam of wachtwoord is onjuist.");
+                console.error(error);
+                return;
+            }
+
+            // Haal het bijbehorende profiel (username + avatar) op
+            const { data: profiel, error: profielError } = await db
+                .from('profiles')
+                .select('username, avatar')
+                .eq('id', data.user.id)
+                .single();
+
+            if (profielError || !profiel) {
+                toonFout("Inloggen gelukt, maar profiel kon niet gevonden worden.");
+                console.error(profielError);
+                return;
+            }
+
+            localStorage.setItem('ingelogdeGebruiker', profiel.username);
+            localStorage.setItem('gebruikerAvatar', profiel.avatar);
+            window.location.href = 'index.html';
+        }
+
+        // Als je al ingelogd bent, meteen doorsturen naar het dashboard
+        (async () => {
+            const { data } = await db.auth.getSession();
+            if (data.session) {
+                window.location.href = 'index.html';
+            }
+        })();
     </script>
 </body>
 </html>
