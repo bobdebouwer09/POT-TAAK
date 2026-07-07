@@ -479,9 +479,19 @@ async function laadLiveData() {
 })();
 
 // REALTIME-MONITORING: Als iemand anders op zijn mobiel iets aanpast, ververst jouw scherm meteen!
-db.channel('custom-all-channel')
-  .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-      laadLiveData();
+const realtimeKanaal = db.channel('groep-' + actieveId)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'chatberichten', filter: 'groep_id=eq.' + actieveId }, () => {
+      console.log('Nieuw chatbericht ontvangen via realtime');
       laadChat();
   })
-  .subscribe();
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'taken', filter: 'groep_id=eq.' + actieveId }, () => {
+      console.log('Taken-update ontvangen via realtime');
+      laadLiveData();
+  })
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'schulden', filter: 'groep_id=eq.' + actieveId }, () => {
+      console.log('Schulden-update ontvangen via realtime');
+      laadLiveData();
+  })
+  .subscribe((status) => {
+      console.log('Realtime status:', status);
+  });
