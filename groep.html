@@ -3,162 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TakeControl - Startpagina</title>
+    <title>TakeControl - Groep</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <nav>
-        <h1>TakeControl 🚀</h1>
+        <h1 id="groeps-titel">Groep laden... 🚀</h1>
         <div style="display: flex; align-items: center; gap: 15px;">
-            <div id="user-display" class="user-info">👤 Laden...</div>
-            <button class="btn-action" style="padding: 4px 10px; font-size: 12px; background-color: var(--color-red) !important; color: white !important; border: none !important;" onclick="uitloggen()">Uitloggen 🚪</button>
+            <button class="btn-action" style="padding: 4px 10px; font-size: 12px;" onclick="pasGroepsNaamAan()">✏️ Naam wijzigen</button>
+            <button class="btn-action" style="padding: 4px 10px; font-size: 12px; background-color: var(--color-red) !important; color: white !important; border: none !important;" onclick="window.location.href='index.html'">⬅ Terug</button>
         </div>
     </nav>
 
     <main class="container">
-        
-        <div class="welcome-hero">
-            <h2 style="font-size: 24px; margin-bottom: 8px;" id="welcome-text">Welkom terug!</h2>
-            <p style="margin: 0; color: var(--text-muted); font-size: 15px;">Kies een actieve groep hieronder of start direct een nieuwe groep om taken en geldstromen bij te houden.</p>
+
+        <div class="widget-box members-box">
+            <div class="members-title">Groepsleden</div>
+            <div class="members-list" id="groeps-leden-lijst"></div>
+            <button class="btn-action" style="margin-top: 12px; padding: 6px 14px; font-size: 13px;" onclick="voegExtraLidToe()">➕ Lid toevoegen</button>
         </div>
 
-        <div class="creator-box">
-            <h3 style="margin-top: 0; margin-bottom: 12px;">➕ Nieuwe Groep Starten</h3>
-            <div class="inline-form">
-                <input type="text" id="new-group-name" placeholder="Naam van de groep (bv: Studentenhuis)">
-                <select id="new-group-type">
-                    <option value="vrienden">🏖️ Vriendengroep (Lichtblauw)</option>
-                    <option value="gezin">🏡 Gezin/Huishouden (Oranje)</option>
-                </select>
-                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor:pointer;">
-                    <input type="checkbox" id="new-group-money" checked> Financiën inschakelen
-                </label>
-                <button class="btn-action" onclick="maakGroepAan()">Groep Aanmaken</button>
+        <div class="tabs-container">
+            <button class="tab-navigation-btn active" onclick="schakelTabblad('tab-taken', this)">📋 Taken</button>
+            <button class="tab-navigation-btn" id="geld-tab-knop" onclick="schakelTabblad('tab-geld', this)">💰 Geld</button>
+            <button class="tab-navigation-btn" onclick="schakelTabblad('tab-chat', this)">💬 Chat</button>
+            <button class="tab-navigation-btn" onclick="schakelTabblad('tab-random', this)">🎲 Random</button>
+        </div>
+
+        <!-- TAKEN TAB -->
+        <div class="tab-pane active" id="tab-taken">
+            <div class="add-task-form">
+                <h3 style="margin-top:0;">➕ Nieuwe Taak</h3>
+                <div class="inline-form">
+                    <input type="text" id="task-title" placeholder="Titel van de taak">
+                    <input type="text" id="task-who" placeholder="Wie? (leeg = Iedereen)">
+                    <input type="date" id="task-date">
+                    <input type="number" id="task-reward" placeholder="€ Beloning" step="0.01" min="0" style="width:100px;">
+                    <select id="task-status">
+                        <option value="todo">Te doen</option>
+                        <option value="doing">Mee bezig</option>
+                        <option value="done">Klaar</option>
+                    </select>
+                    <button onclick="voegTaakToe()">Toevoegen</button>
+                </div>
+            </div>
+
+            <div class="board-vertical">
+                <div class="status-block">
+                    <h4 class="status-todo">🔴 Te doen</h4>
+                    <div id="todo-tasks"></div>
+                </div>
+                <div class="status-block">
+                    <h4 class="status-doing">🟠 Mee bezig</h4>
+                    <div id="doing-tasks"></div>
+                </div>
+                <div class="status-block">
+                    <h4 class="status-done">🟢 Klaar</h4>
+                    <div id="done-tasks"></div>
+                </div>
             </div>
         </div>
 
-        <h3 style="margin-top: 30px; margin-bottom: 15px; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Mijn Actieve Groepen</h3>
-        <div class="dashboard-grid" id="groepen-overzicht">
+        <!-- GELD TAB -->
+        <div class="tab-pane" id="tab-geld" style="display:none;">
+            <div class="widget-box">
+                <h3 style="margin-top:0;">💰 Overzicht per persoon</h3>
+                <table class="money-table">
+                    <thead>
+                        <tr><th>Naam</th><th>Verdiend</th><th>Schuld</th><th>Netto</th></tr>
+                    </thead>
+                    <tbody id="hoofd-geld-tabel-body"></tbody>
+                </table>
             </div>
+
+            <div class="widget-box">
+                <h3 style="margin-top:0;">➕ Schuld toevoegen</h3>
+                <button class="btn-action" onclick="openSchuldPopUp()">Nieuwe schuld invoeren</button>
+
+                <table class="money-table" style="margin-top:20px;">
+                    <thead>
+                        <tr><th>Wie</th><th>Reden</th><th>Bedrag</th><th>Actie</th></tr>
+                    </thead>
+                    <tbody id="schulden-tabel-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- CHAT TAB -->
+        <div class="tab-pane" id="tab-chat" style="display:none;">
+            <div class="widget-box">
+                <h3 style="margin-top:0;">💬 Groepschat</h3>
+                <div class="chat-box" id="chat-berichten"></div>
+                <div class="chat-input-row">
+                    <input type="text" id="chat-input" placeholder="Typ een bericht..." onkeydown="if(event.key==='Enter') stuurBericht()">
+                    <button class="btn-action" onclick="stuurBericht()">Verstuur</button>
+                </div>
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: 10px;">⚠️ Chatberichten worden nog niet opgeslagen en verdwijnen bij het verversen van de pagina.</p>
+            </div>
+        </div>
+
+        <!-- RANDOM TAB -->
+        <div class="tab-pane" id="tab-random" style="display:none;">
+            <div class="widget-box" style="text-align:center;">
+                <h3 style="margin-top:0;">🎲 Wie moet het doen?</h3>
+                <button class="btn-action" onclick="kiesWillekeurigPersoon()">Kies iemand willekeurig</button>
+                <div class="randomizer-result" id="random-resultaat"></div>
+            </div>
+        </div>
 
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+
     <script>
-        // Supabase connectie instellen met jouw gegevens
-        const SUPABASE_URL = "https://rqcnjgavethraxgmczvy.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_nJ8SP8_AbJ9og0OPmQEc5Q_ZylQogOU";
-        
-        // De correcte opstartmethode voor de browser-bibliotheek
-        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // schakelTabblad() in script.js schakelt alleen de 'active' class.
+        // De losse tabs starten verborgen via inline style, dus we wrappen
+        // de functie zodat display en class-toggling gelijk lopen.
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            if (!pane.classList.contains('active')) pane.style.display = 'none';
+        });
 
-        let groepen = [];
-
-        // Inlogcontrole via localStorage
-        const ingelogdeGebruiker = localStorage.getItem('ingelogdeGebruiker');
-        const gebruikerAvatar = localStorage.getItem('gebruikerAvatar') || "👤";
-
-        if (!ingelogdeGebruiker) {
-            window.location.href = 'login.html';
-        } else {
-            document.getElementById('user-display').innerText = `${gebruikerAvatar} ${ingelogdeGebruiker}`;
-            document.getElementById('welcome-text').innerText = `Welkom terug, ${ingelogdeGebruiker}! 👋`;
-        }
-
-        // 1. HAAL ALLE GROEPEN OP UIT JOUW CLOUD
-        async function toonGroepen() {
-            try {
-                const { data: dbGroepen, error } = await db.from('groepen').select('*');
-                if (error) throw error;
-
-                if (dbGroepen) {
-                    groepen = dbGroepen;
-                    // Sla ook lokaal op voor snelle herkenning op groep.html
-                    localStorage.setItem('mijnGroepen', JSON.stringify(groepen));
-                }
-
-                const container = document.getElementById('groepen-overzicht');
-                container.innerHTML = "";
-
-                if (groepen.length === 0) {
-                    container.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-style: italic; padding: 20px;">Je zit nog niet in een groep. Maak hierboven een groep aan om te starten! 🚀</p>`;
-                    return;
-                }
-
-                groepen.forEach(g => {
-                    const card = document.createElement('div');
-                    card.className = g.type === "gezin" ? "group-card type-gezin" : "group-card type-vrienden";
-                    card.setAttribute('onclick', `openGroep(${g.id})`);
-
-                    card.innerHTML = `
-                        <h4>${g.naam} ${g.type === 'vrienden' ? '🏖️' : '🏡'}</h4>
-                        <span class="group-tag">${g.type === 'vrienden' ? 'Vrienden' : 'Gezin'}</span>
-                        <p>Functies: ${g.heeftGeld ? '📋 Taken + 💰 Geld' : '📋 Alleen Taken'}</p>
-                        <button class="delete-group-btn" onclick="verwijderGroep(${g.id}, event)">Verwijderen ❌</button>
-                    `;
-                    container.appendChild(card);
-                });
-            } catch (err) {
-                console.error("Fout bij het ophalen van groepen:", err);
-            }
-        }
-
-        // 2. MAAK EEN NIEUWE GROEP LIVE AAN IN JOUW DATABASE
-        async function maakGroepAan() {
-            const naamInput = document.getElementById('new-group-name');
-            const typeInput = document.getElementById('new-group-type');
-            const geldInput = document.getElementById('new-group-money');
-
-            if (naamInput.value.trim() === "") {
-                alert("Vul eerst een groepsnaam in!");
-                return;
-            }
-
-            // Genereer een groot uniek nummer voor het ID
-            const randomId = Math.floor(Math.random() * 100000000);
-
-            const { error } = await db.from('groepen').insert([
-                {
-                    id: randomId,
-                    naam: naamInput.value.trim(),
-                    type: typeInput.value,
-                    heeftGeld: geldInput.checked
-                }
-            ]);
-
-            if (error) {
-                console.error("Fout bij groep aanmaken in database:", error);
-                alert("Er ging iets mis! Controleer of de kolom 'heeftGeld' in Supabase op type 'bool' staat.");
-            } else {
-                naamInput.value = "";
-                toonGroepen(); // Ververs direct de grid op je scherm
-            }
-        }
-
-        function openGroep(id) {
-            localStorage.setItem('actieveGroepId', id);
-            window.location.href = 'groep.html';
-        }
-
-        // 3. VERWIJDER EEN GROEP LIVE UIT DE CLOUD
-        async function verwijderGroep(id, event) {
-            event.stopPropagation();
-            if (confirm("Weet je zeker dat je deze live groep wilt verwijderen? Dit wist hem voor iedereen!")) {
-                const { error } = await db.from('groepen').delete().eq('id', id);
-                if (error) console.error(error);
-                else toonGroepen();
-            }
-        }
-
-        function uitloggen() {
-            localStorage.removeItem('ingelogdeGebruiker');
-            localStorage.removeItem('gebruikerAvatar');
-            window.location.href = 'login.html';
-        }
-
-        // Start direct met inladen zodra de startpagina opent
-        toonGroepen();
+        const origSchakel = schakelTabblad;
+        schakelTabblad = function(tabId, knop) {
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.style.display = 'none');
+            origSchakel(tabId, knop);
+            document.getElementById(tabId).style.display = 'block';
+        };
     </script>
 </body>
 </html>
