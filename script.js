@@ -6,6 +6,9 @@ const SUPABASE_URL = "https://rqcnjgavethraxgmczvy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_nJ8SP8_AbJ9og0OPmQEc5Q_ZylQogOU";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+let huidigeGebruiker = null;
+let isEigenaarVanGroep = false;
+
 // Tabbladen logica switch
 function schakelTabblad(tabId, knop) {
     document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
@@ -63,13 +66,58 @@ function laadGroepsData() {
         if (actieveGroep.heeftGeld === false) {
             document.getElementById('geld-tab-knop').style.display = 'none';
         }
+        const codeLabel = document.getElementById('groeps-code-label');
+        if (codeLabel && actieveGroep.code) {
+            codeLabel.innerText = `Groepscode: ${actieveGroep.code}`;
+        }
         berekenEnToonGeld();
     }
 }
 
-function pasGroepsNaamAan() {
+// Controleert of de ingelogde gebruiker de eigenaar van deze groep is,
+// en verbergt/toont de verwijder-knop op basis daarvan.
+async function checkEigenaarschap() {
+    const { data } = await db.auth.getSession();
+    if (!data.session) {
+        window.location.href = 'login.html';
+        return;
+    }
+    huidigeGebruiker = data.session.user;
+    isEigenaarVanGroep = actieveGroep && actieveGroep.owner_id === huidigeGebruiker.id;
+
+    const verwijderKnop = document.getElementById('verwijder-groep-knop');
+    if (verwijderKnop) {
+        verwijderKnop.style.display = isEigenaarVanGroep ? 'inline-block' : 'none';
+    }
+}
+
+async function verwijderHuidigeGroep() {
+    if (!isEigenaarVanGroep) {
+        alert("Alleen de eigenaar van de groep kan deze verwijderen.");
+        return;
+    }
+    if (!confirm("Weet je zeker dat je deze groep wilt verwijderen? Dit verwijdert hem voor alle leden!")) return;
+
+    const { error } = await db.from('groepen').delete().eq('id', actieveId);
+    if (error) {
+        console.error("Fout bij groep verwijderen:", error);
+        alert("Verwijderen mislukt.");
+    } else {
+        window.location.href = 'index.html';
+    }
+}
+
+async function pasGroepsNaamAan() {
     const nieuweNaam = prompt("Nieuwe naam voor deze groep:", actieveGroep.naam);
     if (!nieuweNaam || nieuweNaam.trim() === "") return;
+
+    const { error } = await db.from('groepen').update({ naam: nieuweNaam.trim() }).eq('id', actieveId);
+    if (error) {
+        console.error("Fout bij naam aanpassen:", error);
+        alert("Naam aanpassen mislukt.");
+        return;
+    }
+
     actieveGroep.naam = nieuweNaam.trim();
     const index = groepenLijst.findIndex(g => g.id == actieveId);
     if (index !== -1) groepenLijst[index].naam = actieveGroep.naam;
@@ -89,36 +137,38 @@ function haalAlleActievePersonen() {
     return personen;
 }
 
-function updateLedenLijst() {
-    const personen = haalAlleActievePersonen();
+async function updateLedenLijst() {
     const ledenContainer = document.getElementById('groeps-leden-lijst');
     if (!ledenContainer) return;
+
+    const { data: leden, error } = await db
+        .from('groepsleden')
+        .select('user_id, profiles(username, avatar)')
+        .eq('groep_id', actieveId);
+
+    if (error) {
+        console.error("Fout bij ophalen groepsleden:", error);
+        return;
+    }
+
     ledenContainer.innerHTML = "";
 
-    personen.forEach(persoon => {
+    (leden || []).forEach(lid => {
+        const profiel = lid.profiles;
+        if (!profiel) return;
         const badge = document.createElement('div');
-        const heeftBijnaam = bijnamen[persoon];
-        badge.className = persoon === mijnNaam ? "member-badge is-me" : "member-badge";
-        badge.innerHTML = persoon === mijnNaam ? `${mijnAvatar} ${heeftBijnaam ? heeftBijnaam + " (Jij)" : persoon + " (Jij)"}` : `👤 ${heeftBijnaam ? heeftBijnaam : persoon}`;
-        badge.setAttribute('onclick', `geefBijnaam('${persoon}')`);
+        const benIkHet = huidigeGebruiker && lid.user_id === huidigeGebruiker.id;
+        badge.className = benIkHet ? "member-badge is-me" : "member-badge";
+        badge.innerHTML = `${profiel.avatar || '👤'} ${profiel.username}${benIkHet ? ' (Jij)' : ''}`;
         ledenContainer.appendChild(badge);
     });
 }
 
-function uitloggen() {
+async function uitloggen() {
+    await db.auth.signOut();
     localStorage.removeItem('ingelogdeGebruiker');
     localStorage.removeItem('gebruikerAvatar');
     window.location.href = 'login.html';
-}
-
-function voegExtraLidToe() {
-    const naam = prompt("Naam van het nieuwe lid:");
-    if (!naam || naam.trim() === "") return;
-    if (!basisLeden.includes(naam.trim())) {
-        basisLeden.push(naam.trim());
-        localStorage.setItem(`basis_leden_groep_${actieveId}`, JSON.stringify(basisLeden));
-        toonTaken();
-    }
 }
 
 function geefBijnaam(echteNaam) {
@@ -358,6 +408,7 @@ async function laadLiveData() {
 
 laadGroepsData();
 laadLiveData();
+checkEigenaarschap();
 
 // REALTIME-MONITORING: Als iemand anders op zijn mobiel iets aanpast, ververst jouw scherm meteen!
 db.channel('custom-all-channel')
