@@ -9,10 +9,14 @@
 <body>
 
     <nav>
-        <h1 id="groeps-titel">Groep laden... 🚀</h1>
+        <div>
+            <h1 id="groeps-titel" style="margin-bottom: 4px;">Groep laden... 🚀</h1>
+            <span id="groeps-code-label" style="font-size: 12px; color: var(--text-muted);"></span>
+        </div>
         <div style="display: flex; align-items: center; gap: 15px;">
             <button class="btn-action" style="padding: 4px 10px; font-size: 12px;" onclick="pasGroepsNaamAan()">✏️ Naam wijzigen</button>
-            <button class="btn-action" style="padding: 4px 10px; font-size: 12px; background-color: var(--color-red) !important; color: white !important; border: none !important;" onclick="window.location.href='index.html'">⬅ Terug</button>
+            <button class="btn-action" id="verwijder-groep-knop" style="display:none; padding: 4px 10px; font-size: 12px; background-color: var(--color-red) !important; color: white !important; border: none !important;" onclick="verwijderHuidigeGroep()">🗑️ Groep verwijderen</button>
+            <button class="btn-action" style="padding: 4px 10px; font-size: 12px;" onclick="window.location.href='index.html'">⬅ Terug</button>
         </div>
     </nav>
 
@@ -21,7 +25,9 @@
         <div class="widget-box members-box">
             <div class="members-title">Groepsleden</div>
             <div class="members-list" id="groeps-leden-lijst"></div>
-            <button class="btn-action" style="margin-top: 12px; padding: 6px 14px; font-size: 13px;" onclick="voegExtraLidToe()">➕ Lid toevoegen</button>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 12px; margin-bottom: 0;">
+                💡 Wil je iemand toevoegen? Deel de groepscode hierboven — die persoon kan er zelf mee joinen op het dashboard.
+            </p>
         </div>
 
         <div class="tabs-container">
