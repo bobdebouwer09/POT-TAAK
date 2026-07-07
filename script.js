@@ -42,9 +42,30 @@ if (actieveGroep) {
 }
 
 let taken = [];
-let bijnamen = JSON.parse(localStorage.getItem(`bijnamen_groep_${actieveId}`)) || {};
+let bijnamen = {}; // wordt gevuld vanuit de database via laadBijnamen()
 let schulden = [];
-let basisLeden = JSON.parse(localStorage.getItem(`basis_leden_groep_${actieveId}`)) || [];
+let ledenProfielen = []; // volledige lijst van groepsleden (user_id, username, avatar) voor herkenning
+
+// Haalt de gedeelde bijnamen op uit de database (1 bijnaam per persoon, per groep)
+async function laadBijnamen() {
+    const { data: leden, error } = await db
+        .from('groepsleden')
+        .select('user_id, bijnaam, profiles(username)')
+        .eq('groep_id', actieveId);
+
+    if (error) {
+        console.error("Fout bij ophalen bijnamen:", error);
+        return;
+    }
+
+    bijnamen = {};
+    ledenProfielen = leden || [];
+    (leden || []).forEach(lid => {
+        if (lid.bijnaam && lid.profiles) {
+            bijnamen[lid.profiles.username] = lid.bijnaam;
+        }
+    });
+}
 
 function pakNaamOfBijnaam(echteNaam) {
     if (echteNaam === "Iedereen") return "Iedereen";
@@ -127,7 +148,10 @@ async function pasGroepsNaamAan() {
 
 function haalAlleActievePersonen() {
     let personen = [mijnNaam];
-    basisLeden.forEach(p => { if (!personen.includes(p)) personen.push(p); });
+    ledenProfielen.forEach(lid => {
+        const naam = lid.profiles ? lid.profiles.username : null;
+        if (naam && !personen.includes(naam)) personen.push(naam);
+    });
     taken.forEach(taak => {
         if (taak.wie && taak.wie.trim() !== "" && taak.wie !== "Iedereen" && !personen.includes(taak.wie)) personen.push(taak.wie);
     });
@@ -141,25 +165,18 @@ async function updateLedenLijst() {
     const ledenContainer = document.getElementById('groeps-leden-lijst');
     if (!ledenContainer) return;
 
-    const { data: leden, error } = await db
-        .from('groepsleden')
-        .select('user_id, profiles(username, avatar)')
-        .eq('groep_id', actieveId);
-
-    if (error) {
-        console.error("Fout bij ophalen groepsleden:", error);
-        return;
-    }
-
     ledenContainer.innerHTML = "";
 
-    (leden || []).forEach(lid => {
+    ledenProfielen.forEach(lid => {
         const profiel = lid.profiles;
         if (!profiel) return;
         const badge = document.createElement('div');
         const benIkHet = huidigeGebruiker && lid.user_id === huidigeGebruiker.id;
+        const naamOmTeTonen = lid.bijnaam ? `${lid.bijnaam} (${profiel.username})` : profiel.username;
         badge.className = benIkHet ? "member-badge is-me" : "member-badge";
-        badge.innerHTML = `${profiel.avatar || '👤'} ${profiel.username}${benIkHet ? ' (Jij)' : ''}`;
+        badge.innerHTML = `${profiel.avatar || '👤'} ${naamOmTeTonen}${benIkHet ? ' (Jij)' : ''}`;
+        badge.style.cursor = 'pointer';
+        badge.setAttribute('onclick', `geefBijnaam('${lid.user_id}', '${profiel.username}')`);
         ledenContainer.appendChild(badge);
     });
 }
@@ -171,13 +188,26 @@ async function uitloggen() {
     window.location.href = 'login.html';
 }
 
-function geefBijnaam(echteNaam) {
-    const huidige = bijnamen[echteNaam] || "";
-    const nieuwe = prompt(`Geef een bijnaam voor ${echteNaam}:`, huidige);
+async function geefBijnaam(userId, username) {
+    const huidige = bijnamen[username] || "";
+    const nieuwe = prompt(`Geef een bijnaam voor ${username}:`, huidige);
     if (nieuwe === null) return;
-    if (nieuwe.trim() === "") delete bijnamen[echteNaam];
-    else bijnamen[echteNaam] = nieuwe.trim();
-    localStorage.setItem(`bijnamen_groep_${actieveId}`, JSON.stringify(bijnamen));
+
+    const nieuweBijnaam = nieuwe.trim() === "" ? null : nieuwe.trim();
+
+    const { error } = await db
+        .from('groepsleden')
+        .update({ bijnaam: nieuweBijnaam })
+        .eq('groep_id', actieveId)
+        .eq('user_id', userId);
+
+    if (error) {
+        console.error("Fout bij bijnaam opslaan:", error);
+        alert("Bijnaam opslaan mislukt.");
+        return;
+    }
+
+    await laadBijnamen();
     toonTaken();
 }
 
@@ -406,9 +436,12 @@ async function laadLiveData() {
     toonTaken();
 }
 
-laadGroepsData();
-laadLiveData();
-checkEigenaarschap();
+(async () => {
+    await laadBijnamen();
+    laadGroepsData();
+    laadLiveData();
+    checkEigenaarschap();
+})();
 
 // REALTIME-MONITORING: Als iemand anders op zijn mobiel iets aanpast, ververst jouw scherm meteen!
 db.channel('custom-all-channel')
