@@ -395,12 +395,46 @@ async function verwijderTaak(id, event) {
     else laadLiveData();
 }
 
-function stuurBericht() {
+async function stuurBericht() {
     const input = document.getElementById('chat-input');
     if (input.value.trim() === "") return;
-    const box = document.getElementById('chat-berichten');
-    box.innerHTML += `<div class="chat-msg"><strong>${mijnNaam} ${mijnAvatar}:</strong> ${input.value.trim()}</div>`;
+
+    const { error } = await db.from('chatberichten').insert([
+        { groep_id: parseInt(actieveId), user_id: huidigeGebruiker.id, bericht: input.value.trim() }
+    ]);
+
+    if (error) {
+        console.error("Fout bij versturen bericht:", error);
+        alert("Bericht versturen mislukt.");
+        return;
+    }
+
     input.value = "";
+    await laadChat();
+}
+
+// Haalt alle chatberichten van deze groep op en toont ze, met naam + avatar van de afzender
+async function laadChat() {
+    const box = document.getElementById('chat-berichten');
+    if (!box) return;
+
+    const { data: berichten, error } = await db
+        .from('chatberichten')
+        .select('bericht, created_at, user_id, profiles(username, avatar)')
+        .eq('groep_id', actieveId)
+        .order('created_at', { ascending: true });
+
+    if (error) {
+        console.error("Fout bij ophalen chat:", error);
+        return;
+    }
+
+    box.innerHTML = "";
+    (berichten || []).forEach(b => {
+        const naam = b.profiles ? (bijnamen[b.profiles.username] || b.profiles.username) : "Onbekend";
+        const avatar = b.profiles ? b.profiles.avatar : "👤";
+        box.innerHTML += `<div class="chat-msg"><strong>${naam} ${avatar}:</strong> ${b.bericht}</div>`;
+    });
     box.scrollTop = box.scrollHeight;
 }
 
@@ -440,6 +474,7 @@ async function laadLiveData() {
     await laadBijnamen();
     laadGroepsData();
     laadLiveData();
+    laadChat();
     checkEigenaarschap();
 })();
 
@@ -447,5 +482,6 @@ async function laadLiveData() {
 db.channel('custom-all-channel')
   .on('postgres_changes', { event: '*', schema: 'public' }, () => {
       laadLiveData();
+      laadChat();
   })
   .subscribe();
