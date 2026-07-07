@@ -492,16 +492,16 @@ console.log('Script komt nu bij het opzetten van de realtime-verbinding...');
 
 // REALTIME-MONITORING: Als iemand anders op zijn mobiel iets aanpast, ververst jouw scherm meteen!
 const realtimeKanaal = db.channel('groep-' + actieveId)
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'chatberichten', filter: 'groep_id=eq.' + actieveId }, () => {
-      console.log('Nieuw chatbericht ontvangen via realtime');
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'chatberichten' }, (payload) => {
+      console.log('Chat-event ontvangen:', payload);
       laadChat();
   })
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'taken', filter: 'groep_id=eq.' + actieveId }, () => {
-      console.log('Taken-update ontvangen via realtime');
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'taken' }, (payload) => {
+      console.log('Taken-event ontvangen:', payload);
       laadLiveData();
   })
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'schulden', filter: 'groep_id=eq.' + actieveId }, () => {
-      console.log('Schulden-update ontvangen via realtime');
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'schulden' }, (payload) => {
+      console.log('Schulden-event ontvangen:', payload);
       laadLiveData();
   })
   .subscribe((status) => {
