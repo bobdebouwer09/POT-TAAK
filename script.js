@@ -471,12 +471,24 @@ async function laadLiveData() {
 }
 
 (async () => {
-    await laadBijnamen();
-    laadGroepsData();
-    laadLiveData();
-    laadChat();
-    checkEigenaarschap();
+    console.log('Start met laden van groepspagina...');
+    try {
+        await laadBijnamen();
+        console.log('Bijnamen geladen');
+        laadGroepsData();
+        console.log('Groepsdata geladen');
+        laadLiveData();
+        console.log('Live data (taken/schulden) geladen');
+        laadChat();
+        console.log('Chat geladen');
+        checkEigenaarschap();
+        console.log('Eigenaarschap gecheckt');
+    } catch (err) {
+        console.error('FOUT tijdens opstarten:', err);
+    }
 })();
+
+console.log('Script komt nu bij het opzetten van de realtime-verbinding...');
 
 // REALTIME-MONITORING: Als iemand anders op zijn mobiel iets aanpast, ververst jouw scherm meteen!
 const realtimeKanaal = db.channel('groep-' + actieveId)
