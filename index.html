@@ -17,84 +17,120 @@
     </nav>
 
     <main class="container">
-        
+
         <div class="welcome-hero">
             <h2 style="font-size: 24px; margin-bottom: 8px;" id="welcome-text">Welkom terug!</h2>
-            <p style="margin: 0; color: var(--text-muted); font-size: 15px;">Kies een actieve groep hieronder of start direct een nieuwe groep om taken en geldstromen bij te houden.</p>
+            <p style="margin: 0; color: var(--text-muted); font-size: 15px;">Start een nieuwe groep, of join een bestaande groep met een code van een groepsgenoot.</p>
         </div>
 
-        <div class="creator-box">
-            <h3 style="margin-top: 0; margin-bottom: 12px;">➕ Nieuwe Groep Starten</h3>
-            <div class="inline-form">
-                <input type="text" id="new-group-name" placeholder="Naam van de groep (bv: Studentenhuis)">
-                <select id="new-group-type">
-                    <option value="vrienden">🏖️ Vriendengroep (Lichtblauw)</option>
-                    <option value="gezin">🏡 Gezin/Huishouden (Oranje)</option>
-                </select>
-                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor:pointer;">
-                    <input type="checkbox" id="new-group-money" checked> Financiën inschakelen
-                </label>
-                <button class="btn-action" onclick="maakGroepAan()">Groep Aanmaken</button>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div class="creator-box" style="flex: 1; min-width: 280px;">
+                <h3 style="margin-top: 0; margin-bottom: 12px;">➕ Nieuwe Groep Starten</h3>
+                <div class="inline-form" style="flex-direction: column; align-items: stretch;">
+                    <input type="text" id="new-group-name" placeholder="Naam van de groep (bv: Studentenhuis)">
+                    <select id="new-group-type">
+                        <option value="vrienden">🏖️ Vriendengroep (Lichtblauw)</option>
+                        <option value="gezin">🏡 Gezin/Huishouden (Oranje)</option>
+                    </select>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor:pointer;">
+                        <input type="checkbox" id="new-group-money" checked> Financiën inschakelen
+                    </label>
+                    <button class="btn-action" onclick="maakGroepAan()">Groep Aanmaken</button>
+                </div>
+            </div>
+
+            <div class="creator-box" style="flex: 1; min-width: 280px;">
+                <h3 style="margin-top: 0; margin-bottom: 12px;">🔑 Join een Groep</h3>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: 0;">Vraag de groepscode aan iemand die al lid is.</p>
+                <div class="inline-form" style="flex-direction: column; align-items: stretch;">
+                    <input type="text" id="join-code" placeholder="Groepscode (bv. ABC123)" style="text-transform: uppercase;">
+                    <button class="btn-action" onclick="joinGroep()">Groep Joinen</button>
+                </div>
+                <p id="join-foutmelding" style="display:none; color: var(--color-red); font-size: 13px; margin-top: 8px;"></p>
             </div>
         </div>
 
         <h3 style="margin-top: 30px; margin-bottom: 15px; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Mijn Actieve Groepen</h3>
         <div class="dashboard-grid" id="groepen-overzicht">
-            </div>
+            <p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-style: italic; padding: 20px;">Groepen laden... ⏳</p>
+        </div>
 
     </main>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Connectie met jouw specifieke Supabase database
         const SUPABASE_URL = "https://rqcnjgavethraxgmczvy.supabase.co";
         const SUPABASE_KEY = "sb_publishable_nJ8SP8_AbJ9og0OPmQEc5Q_ZylQogOU";
-        
-        // Nu is window.supabase wél bekend en zal hij niet meer crashen!
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let groepen = [];
+        let huidigeGebruiker = null;
 
-        // Inlogcontrole via localStorage
-        const ingelogdeGebruiker = localStorage.getItem('ingelogdeGebruiker');
-        const gebruikerAvatar = localStorage.getItem('gebruikerAvatar') || "👤";
-
-        if (!ingelogdeGebruiker) {
-            window.location.href = 'login.html';
-        } else {
-            document.getElementById('user-display').innerText = gebruikerAvatar + " " + ingelogdeGebruiker;
-            document.getElementById('welcome-text').innerText = "Welkom terug, " + ingelogdeGebruiker + "! 👋";
+        // Genereert een makkelijk leesbare groepscode zoals "K3F9QZ"
+        function genereerGroepsCode() {
+            const tekens = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // zonder verwarrende letters/cijfers (O, 0, I, 1)
+            let code = "";
+            for (let i = 0; i < 6; i++) {
+                code += tekens.charAt(Math.floor(Math.random() * tekens.length));
+            }
+            return code;
         }
 
-        // 1. HAAL ALLE GROEPEN OP UIT JOUW CLOUD
+        function toonJoinFout(bericht) {
+            const el = document.getElementById('join-foutmelding');
+            el.innerText = bericht;
+            el.style.display = 'block';
+        }
+
+        function verbergJoinFout() {
+            document.getElementById('join-foutmelding').style.display = 'none';
+        }
+
+        // 1. HAAL ALLE GROEPEN OP WAAR IK LID VAN BEN
         async function toonGroepen() {
             try {
-                const { data: dbGroepen, error } = await db.from('groepen').select('*');
-                if (error) throw error;
+                // Eerst opzoeken in welke groepen ik lid ben via groepsleden
+                const { data: lidmaatschappen, error: lidError } = await db
+                    .from('groepsleden')
+                    .select('groep_id')
+                    .eq('user_id', huidigeGebruiker.id);
 
-                if (dbGroepen) {
-                    groepen = dbGroepen;
-                    localStorage.setItem('mijnGroepen', JSON.stringify(groepen));
-                }
+                if (lidError) throw lidError;
+
+                const groepIds = lidmaatschappen.map(l => l.groep_id);
 
                 const container = document.getElementById('groepen-overzicht');
                 container.innerHTML = "";
 
-                if (groepen.length === 0) {
-                    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-style: italic; padding: 20px;">Je zit nog niet in een group. Maak hierboven een groep aan om te starten! 🚀</p>';
+                if (groepIds.length === 0) {
+                    groepen = [];
+                    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); font-style: italic; padding: 20px;">Je zit nog niet in een groep. Maak hierboven een groep aan of join er een met een code! 🚀</p>';
                     return;
                 }
 
+                const { data: dbGroepen, error } = await db
+                    .from('groepen')
+                    .select('*')
+                    .in('id', groepIds);
+
+                if (error) throw error;
+
+                groepen = dbGroepen || [];
+                localStorage.setItem('mijnGroepen', JSON.stringify(groepen));
+
                 groepen.forEach(g => {
+                    const isEigenaar = g.owner_id === huidigeGebruiker.id;
                     const card = document.createElement('div');
                     card.className = g.type === "gezin" ? "group-card type-gezin" : "group-card type-vrienden";
-                    card.setAttribute('onclick', 'openGroep(' + g.id + ')');
+                    card.setAttribute('onclick', `openGroep(${g.id})`);
 
-                    card.innerHTML = '<h4>' + g.naam + ' ' + (g.type === "vrienden" ? "🏖️" : "🏡") + '</h4>' +
-                                     '<span class="group-tag">' + (g.type === "vrienden" ? "Vrienden" : "Gezin") + '</span>' +
-                                     '<p>Functies: ' + (g.heeftGeld ? "📋 Taken + 💰 Geld" : "📋 Alleen Taken") + '</p>' +
-                                     '<button class="delete-group-btn" onclick="verwijderGroep(' + g.id + ', event)">Verwijderen ❌</button>';
+                    card.innerHTML = `
+                        <h4>${g.naam} ${g.type === 'vrienden' ? '🏖️' : '🏡'}</h4>
+                        <span class="group-tag">${g.type === 'vrienden' ? 'Vrienden' : 'Gezin'}</span>
+                        <p>Functies: ${g.heeftGeld ? '📋 Taken + 💰 Geld' : '📋 Alleen Taken'}</p>
+                        <p style="font-size:12px; color: var(--text-muted);">Groepscode: <strong style="color: var(--primary-color);">${g.code}</strong></p>
+                        ${isEigenaar ? `<button class="delete-group-btn" onclick="verwijderGroep(${g.id}, event)">Verwijderen ❌</button>` : `<span style="font-size:11px; color: var(--text-muted);">👤 Lid</span>`}
+                    `;
                     container.appendChild(card);
                 });
             } catch (err) {
@@ -102,7 +138,7 @@
             }
         }
 
-        // 2. MAAK EEN NIEUWE GROEP LIVE AAN IN JOUW DATABASE
+        // 2. MAAK EEN NIEUWE GROEP AAN (ik word automatisch eigenaar + lid)
         async function maakGroepAan() {
             const naamInput = document.getElementById('new-group-name');
             const typeInput = document.getElementById('new-group-type');
@@ -114,23 +150,82 @@
             }
 
             const randomId = Math.floor(Math.random() * 100000000);
+            const code = genereerGroepsCode();
 
             const { error } = await db.from('groepen').insert([
                 {
                     id: randomId,
                     naam: naamInput.value.trim(),
                     type: typeInput.value,
-                    heeftGeld: geldInput.checked
+                    heeftGeld: geldInput.checked,
+                    owner_id: huidigeGebruiker.id,
+                    code: code
                 }
             ]);
 
             if (error) {
                 console.error("Fout bij groep aanmaken in database:", error);
                 alert("Er ging iets mis bij de database.");
-            } else {
-                naamInput.value = "";
-                await toonGroepen(); 
+                return;
             }
+
+            // Maak mezelf ook meteen lid van de groep die ik net aanmaakte
+            const { error: lidError } = await db.from('groepsleden').insert([
+                { groep_id: randomId, user_id: huidigeGebruiker.id }
+            ]);
+
+            if (lidError) {
+                console.error("Fout bij mezelf toevoegen als lid:", lidError);
+            }
+
+            naamInput.value = "";
+            await toonGroepen();
+        }
+
+        // 3. JOIN EEN BESTAANDE GROEP MET EEN CODE
+        async function joinGroep() {
+            verbergJoinFout();
+            const codeInput = document.getElementById('join-code');
+            const code = codeInput.value.trim().toUpperCase();
+
+            if (code === "") {
+                toonJoinFout("Vul een groepscode in.");
+                return;
+            }
+
+            const { data: groep, error } = await db
+                .from('groepen')
+                .select('id, naam')
+                .eq('code', code)
+                .maybeSingle();
+
+            if (error) {
+                console.error(error);
+                toonJoinFout("Er ging iets mis bij het zoeken naar deze groep.");
+                return;
+            }
+
+            if (!groep) {
+                toonJoinFout("Geen groep gevonden met deze code. Controleer de code en probeer opnieuw.");
+                return;
+            }
+
+            const { error: lidError } = await db.from('groepsleden').insert([
+                { groep_id: groep.id, user_id: huidigeGebruiker.id }
+            ]);
+
+            if (lidError) {
+                if (lidError.code === '23505') {
+                    toonJoinFout(`Je bent al lid van "${groep.naam}".`);
+                } else {
+                    console.error(lidError);
+                    toonJoinFout("Er ging iets mis bij het joinen van de groep.");
+                }
+                return;
+            }
+
+            codeInput.value = "";
+            await toonGroepen();
         }
 
         function openGroep(id) {
@@ -138,23 +233,45 @@
             window.location.href = 'groep.html';
         }
 
+        // 4. VERWIJDER EEN GROEP (alleen mogelijk als je de eigenaar bent, dit wordt ook
+        //    afgedwongen door de database zelf via Row Level Security)
         async function verwijderGroep(id, event) {
             event.stopPropagation();
-            if (confirm("Weet je zeker dat je deze live groep wilt verwijderen? Dit wist hem voor iedereen!")) {
+            if (confirm("Weet je zeker dat je deze groep wilt verwijderen? Dit verwijdert hem voor alle leden!")) {
                 const { error } = await db.from('groepen').delete().eq('id', id);
-                if (error) console.error(error);
-                else toonGroepen();
+                if (error) {
+                    console.error(error);
+                    alert("Verwijderen mislukt. Mogelijk ben je niet de eigenaar van deze groep.");
+                } else {
+                    toonGroepen();
+                }
             }
         }
 
-        function uitloggen() {
+        async function uitloggen() {
+            await db.auth.signOut();
             localStorage.removeItem('ingelogdeGebruiker');
             localStorage.removeItem('gebruikerAvatar');
             window.location.href = 'login.html';
         }
 
-        // Start direct met inladen
-        toonGroepen();
+        // Controleer of de gebruiker echt is ingelogd via Supabase Auth.
+        // Zo niet: terug naar het inlogscherm.
+        (async () => {
+            const { data } = await db.auth.getSession();
+            if (!data.session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            huidigeGebruiker = data.session.user;
+
+            const gebruikerAvatar = localStorage.getItem('gebruikerAvatar') || "👤";
+            const ingelogdeGebruiker = localStorage.getItem('ingelogdeGebruiker') || "Gebruiker";
+            document.getElementById('user-display').innerText = `${gebruikerAvatar} ${ingelogdeGebruiker}`;
+            document.getElementById('welcome-text').innerText = `Welkom terug, ${ingelogdeGebruiker}! 👋`;
+
+            toonGroepen();
+        })();
     </script>
 </body>
 </html>
