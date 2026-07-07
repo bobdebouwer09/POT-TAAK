@@ -1,7 +1,10 @@
 // Supabase Connectie initialiseren
+// LET OP: dit script wordt geladen NA de supabase-js library, maar de
+// pagina die dit script insluit (groep.html) maakt zelf geen eigen client
+// meer aan -- alles gebeurt hier, zodat er maar één 'db' bestaat.
 const SUPABASE_URL = "https://rqcnjgavethraxgmczvy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_nJ8SP8_AbJ9og0OPmQEc5Q_ZylQogOU";
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Tabbladen logica switch
 function schakelTabblad(tabId, knop) {
@@ -358,7 +361,7 @@ laadLiveData();
 
 // REALTIME-MONITORING: Als iemand anders op zijn mobiel iets aanpast, ververst jouw scherm meteen!
 db.channel('custom-all-channel')
-  .on('postgres_changes', { event: '*', pattern: 'public' }, () => {
+  .on('postgres_changes', { event: '*', schema: 'public' }, () => {
       laadLiveData();
   })
   .subscribe();
